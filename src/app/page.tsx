@@ -74,7 +74,13 @@ export default function Home() {
       }
       
       const data = await response.json();
-      setResult(data.pages[0].text);
+      
+      // Check if there are pages in the response
+      if (data.pages && data.pages.length > 0) {
+        setResult(data.pages[0].text);
+      } else {
+        setError('لم يتم العثور على نص في الملف المُحمّل');
+      }
     } catch (err) {
       setError('حدث خطأ أثناء معالجة الملف. يرجى المحاولة مرة أخرى.');
       console.error(err);
