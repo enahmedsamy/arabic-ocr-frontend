@@ -64,7 +64,7 @@ export default function Home() {
     formData.append("file", file);
 
     try {
-      const response = await fetch("http://localhost:8000/api/ocr", {
+      const response = await fetch("https://arabic-ocr-backend-488cadce3027.herokuapp.com/api/ocr", {
         method: "POST",
         body: formData,
       });
