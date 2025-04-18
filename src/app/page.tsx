@@ -256,7 +256,7 @@ export default function Home() {
       // Detect if we're in development or production
       const backendUrl = process.env.NODE_ENV === 'development' 
         ? 'http://localhost:8000'
-        : 'https://arabic-ocr-backend-d09ef2a2b9e9.herokuapp.com';
+        : 'https://arabic-ocr-backend-staging-09589497d137.herokuapp.com';
       
       // Add mixed language processing option to ensure both Arabic and English are properly handled
       formData.append('mixed_language', 'true');
