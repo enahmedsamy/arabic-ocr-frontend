@@ -268,7 +268,7 @@ export default function Home() {
       const progressInterval = simulateProgress();
       
       // Send the file to the backend
-      const response = await fetch(`${backendUrl}/upload/`, {
+      const response = await fetch(`${backendUrl}/api/ocr`, {
         method: 'POST',
         body: formData,
       });
