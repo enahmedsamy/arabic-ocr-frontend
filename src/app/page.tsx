@@ -113,8 +113,17 @@ export default function Home() {
     <main className="min-h-screen font-arabic">
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="font-bold text-2xl text-[var(--apple-blue)]">تحليل النصوص العربية</div>
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <img 
+              src="/ocr-arabic-logo.png" 
+              alt="Arabic Books OCR" 
+              className="h-10 w-auto"
+            />
+            <div className="font-bold text-xl text-[var(--apple-blue)] font-['Baloo_Bhaijaan_2']">
+              Arabic Books OCR
+            </div>
+          </div>
           <nav className="hidden md:block">
             <ul className="flex gap-6">
               <li><a href="#features" className="text-[var(--apple-text)] hover:text-[var(--apple-blue)]">المميزات</a></li>
@@ -135,10 +144,10 @@ export default function Home() {
               transition={{ duration: 0.5 }}
             >
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight text-[var(--apple-text)] font-['Baloo_Bhaijaan_2']">
-                استخراج النصوص العربية بدقة عالية
+                استخراج النصوص من الكتب العربية
               </h1>
               <p className="text-[var(--apple-secondary-text)] mb-8 text-lg max-w-2xl mx-auto font-['Baloo_Bhaijaan_2']">
-                حوّل الصور والمستندات الممسوحة ضوئياً إلى نصوص رقمية قابلة للتحرير والبحث بسهولة تامة
+                حوّل الكتب والمستندات الممسوحة ضوئياً إلى نصوص رقمية قابلة للتحرير والبحث بسهولة تامة
               </p>
               <a 
                 href="#upload" 
@@ -308,9 +317,16 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <h4 className="text-lg font-bold mb-4">تحليل النصوص العربية</h4>
+              <div className="flex items-center gap-2 mb-4">
+                <img 
+                  src="/ocr-arabic-logo.png" 
+                  alt="Arabic Books OCR" 
+                  className="h-10 w-auto invert" 
+                />
+                <h4 className="text-lg font-bold">Arabic Books OCR</h4>
+              </div>
               <p className="text-gray-400">
-                تطبيق متكامل لتحويل الصور إلى نصوص قابلة للتحرير والبحث
+                تطبيق متكامل لتحويل الكتب إلى نصوص قابلة للتحرير والبحث
               </p>
             </div>
             <div>
@@ -325,14 +341,14 @@ export default function Home() {
               <h4 className="text-lg font-bold mb-4">تواصل معنا</h4>
               <p className="text-gray-400">
                 راسلنا على البريد الإلكتروني:
-                <a href="mailto:info@arabic-ocr.com" className="text-white hover:underline block mt-1">
-                  info@arabic-ocr.com
+                <a href="mailto:info@arabic-books-ocr.com" className="text-white hover:underline block mt-1">
+                  info@arabic-books-ocr.com
                 </a>
               </p>
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
-            <p>© {new Date().getFullYear()} تحليل النصوص العربية. جميع الحقوق محفوظة.</p>
+            <p>© {new Date().getFullYear()} Arabic Books OCR. جميع الحقوق محفوظة.</p>
           </div>
         </div>
       </footer>

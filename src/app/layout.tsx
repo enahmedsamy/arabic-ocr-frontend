@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "استخراج النصوص العربية",
-  description: "تطبيق متطور للتعرف الضوئي على النصوص العربية",
+  title: "Arabic Books OCR",
+  description: "Extract text from Arabic books and documents easily",
+  icons: {
+    icon: "/favicon.ico",
+  }
 };
 
 export default function RootLayout({
@@ -19,6 +22,7 @@ export default function RootLayout({
           rel="stylesheet" 
           precedence="default"
         />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
       <body className="font-['Baloo_Bhaijaan_2']">{children}</body>
     </html>
