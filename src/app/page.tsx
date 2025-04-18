@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 
@@ -24,6 +24,13 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState<boolean>(false);
   const [fileSelected, setFileSelected] = useState<boolean>(false);
+  const [showIOSButtons, setShowIOSButtons] = useState<boolean>(false);
+
+  // Check if we're on iOS
+  useEffect(() => {
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    setShowIOSButtons(isIOS);
+  }, []);
 
   const handleFileDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -36,49 +43,99 @@ export default function Home() {
   }, []);
 
   const handleFile = (file: File) => {
-    // Get file extension and mime type
-    const fileName = file.name.toLowerCase();
-    const fileExt = fileName.split('.').pop() || '';
-    const fileType = file.type.toLowerCase();
-    
-    console.log("File selected:", { name: fileName, type: fileType, size: file.size });
-    
-    // Check if file is an image or PDF
-    const imageTypes = ['jpg', 'jpeg', 'png', 'heif', 'heic', 'webp', 'bmp', 'gif', 'tiff', 'tif', 'raw', 'img', 'svg'];
-    const isPDF = fileExt === 'pdf' || fileType === 'application/pdf';
-    const isImage = imageTypes.includes(fileExt) || fileType.startsWith('image/');
-    
-    // iOS sometimes uses a generic content type, so we check if it looks like an image from size
-    const looksLikeImage = file.size > 0 && file.size < 20 * 1024 * 1024; // Less than 20MB is likely an image/pdf
-    
-    if (!isImage && !isPDF && !looksLikeImage) {
-      setError('يرجى تحميل ملف صورة (JPG, PNG, HEIC, الخ) أو PDF');
-      setFileSelected(false);
-      return;
-    }
-    
-    setFile(file);
-    setError(null);
-    setFileSelected(true);
-
-    // Focus on the process button after a short delay to ensure the DOM has updated
-    setTimeout(() => {
-      const processButton = document.getElementById('process-button');
-      if (processButton) {
-        processButton.focus();
-        // Also scroll to it on mobile
-        if (window.innerWidth < 768) {
-          processButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+    try {
+      // Get file extension and mime type
+      const fileName = file.name.toLowerCase();
+      const fileExt = fileName.split('.').pop() || '';
+      const fileType = file.type.toLowerCase();
+      
+      console.log("Processing file:", { 
+        name: fileName, 
+        type: fileType, 
+        size: file.size,
+        lastModified: new Date(file.lastModified).toISOString()
+      });
+      
+      // For debugging on mobile
+      document.getElementById('debug-info')?.remove();
+      const debugDiv = document.createElement('div');
+      debugDiv.id = 'debug-info';
+      debugDiv.style.display = 'none';
+      debugDiv.textContent = JSON.stringify({ 
+        name: fileName, 
+        type: fileType, 
+        size: file.size,
+        lastModified: new Date(file.lastModified).toISOString()
+      });
+      document.body.appendChild(debugDiv);
+      
+      // Check if file is an image or PDF
+      const imageTypes = ['jpg', 'jpeg', 'png', 'heif', 'heic', 'webp', 'bmp', 'gif', 'tiff', 'tif', 'raw', 'img', 'svg'];
+      const isPDF = fileExt === 'pdf' || fileType === 'application/pdf';
+      const isImage = imageTypes.includes(fileExt) || fileType.startsWith('image/');
+      
+      // iOS sometimes uses a generic content type, so we check if it looks like an image from size
+      const looksLikeImage = file.size > 0 && file.size < 20 * 1024 * 1024; // Less than 20MB is likely an image/pdf
+      
+      // Special case for blank file type on iOS
+      const isIOSImage = /iPhone|iPad|iPod/i.test(navigator.userAgent) && 
+                       (fileType === '' || fileType === 'application/octet-stream') && 
+                       looksLikeImage;
+      
+      if (!isImage && !isPDF && !looksLikeImage && !isIOSImage) {
+        setError('يرجى تحميل ملف صورة (JPG, PNG, HEIC, الخ) أو PDF');
+        setFileSelected(false);
+        return;
       }
-    }, 300);
+      
+      setFile(file);
+      setError(null);
+      setFileSelected(true);
+
+      // Focus on the process button after a short delay to ensure the DOM has updated
+      setTimeout(() => {
+        const processButton = document.getElementById('process-button');
+        if (processButton) {
+          processButton.focus();
+          // Also scroll to it on mobile
+          if (window.innerWidth < 768) {
+            processButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 300);
+    } catch (err) {
+      console.error("Error processing file:", err);
+      setError(`خطأ في معالجة الملف: ${err instanceof Error ? err.message : 'خطأ غير معروف'}`);
+      setFileSelected(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      // Clear the file input value so the same file can be selected again
-      e.target.value = '';
-      handleFile(e.target.files[0]);
+    try {
+      console.log("File selection event triggered", e.target.files);
+      
+      if (e.target.files && e.target.files.length > 0) {
+        const selectedFile = e.target.files[0];
+        console.log("File selected:", selectedFile.name, selectedFile.type, selectedFile.size);
+        
+        // Some mobile browsers clear the input immediately, so make a copy of the file
+        const fileObj = new File(
+          [selectedFile], 
+          selectedFile.name, 
+          { type: selectedFile.type }
+        );
+        
+        // Clear the file input value to allow selecting the same file again
+        e.target.value = '';
+        
+        // Process the file
+        handleFile(fileObj);
+      } else {
+        console.log("No file selected or file selection cancelled");
+      }
+    } catch (err) {
+      console.error("Error handling file selection:", err);
+      setError(`خطأ في اختيار الملف: ${err instanceof Error ? err.message : 'خطأ غير معروف'}`);
     }
   };
 
@@ -100,27 +157,27 @@ export default function Home() {
     setLoading(true);
     setError(null);
     
-    // Check if this might be a HEIC file from iOS that wasn't properly detected
-    let fileToSend = file;
-    const fileName = file.name.toLowerCase();
-    
-    // If filename doesn't have an extension but comes from iOS, add .heic extension to help the backend
-    if (!fileName.includes('.') && /iphone|ipad|ipod/i.test(navigator.userAgent)) {
-      // Create a new file object with .heic extension
-      const newFileName = `${fileName}.heic`;
-      fileToSend = new File([file], newFileName, { type: file.type || 'image/heic' });
-      console.log("Renamed file for iOS compatibility:", newFileName);
-    }
-    
-    const formData = new FormData();
-    formData.append("file", fileToSend);
-
-    // Use the appropriate backend URL based on environment
-    const apiUrl = process.env.NODE_ENV === 'development' 
-      ? "http://localhost:8000/api/ocr"
-      : "https://arabic-ocr-backend-staging-09589497d137.herokuapp.com/api/ocr";
-
     try {
+      // Check if this might be a HEIC file from iOS that wasn't properly detected
+      let fileToSend = file;
+      const fileName = file.name.toLowerCase();
+      
+      // If filename doesn't have an extension but comes from iOS, add .heic extension to help the backend
+      if ((!fileName.includes('.') || file.type === '') && /iphone|ipad|ipod/i.test(navigator.userAgent)) {
+        // Create a new file object with .heic extension
+        const newFileName = `${fileName}.heic`;
+        fileToSend = new File([file], newFileName, { type: file.type || 'image/heic' });
+        console.log("Renamed file for iOS compatibility:", newFileName);
+      }
+      
+      const formData = new FormData();
+      formData.append("file", fileToSend);
+
+      // Use the appropriate backend URL based on environment
+      const apiUrl = process.env.NODE_ENV === 'development' 
+        ? "http://localhost:8000/api/ocr"
+        : "https://arabic-ocr-backend-staging-09589497d137.herokuapp.com/api/ocr";
+
       console.log("Sending request to:", apiUrl);
       
       const response = await fetch(apiUrl, {
@@ -258,7 +315,55 @@ export default function Home() {
                   className="hidden"
                   accept="image/*,.pdf,.heif,.heic"
                   onChange={handleFileChange}
+                  onClick={(e) => {
+                    // On iOS, clear the value when clicking to allow reselection
+                    const target = e.target as HTMLInputElement;
+                    target.value = '';
+                    console.log("File input clicked, value cleared");
+                  }}
                 />
+                
+                {/* Special inputs for iOS */}
+                {showIOSButtons && !fileSelected && (
+                  <div className="grid grid-cols-2 gap-3 w-full mb-2">
+                    <button
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.capture = 'environment';
+                        input.onchange = (e) => {
+                          const target = e.target as HTMLInputElement;
+                          if (target.files?.[0]) {
+                            handleFile(target.files[0]);
+                          }
+                        };
+                        input.click();
+                      }}
+                      className="btn-apple-secondary py-3 text-sm"
+                    >
+                      التقط صورة
+                    </button>
+                    <button
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = (e) => {
+                          const target = e.target as HTMLInputElement;
+                          if (target.files?.[0]) {
+                            handleFile(target.files[0]);
+                          }
+                        };
+                        input.click();
+                      }}
+                      className="btn-apple-secondary py-3 text-sm"
+                    >
+                      اختر من المعرض
+                    </button>
+                  </div>
+                )}
+                
                 <div className="flex gap-3">
                   <label
                     htmlFor="file-upload"
