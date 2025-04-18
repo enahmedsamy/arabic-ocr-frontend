@@ -1,12 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=SF+Pro+Text:wght@400;500;600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -14,24 +12,23 @@
 
 :root {
   --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 255, 255, 255;
+  --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
-  --font-arabic: 'Baloo Bhaijaan 2', 'Tajawal', sans-serif;
-  
-  /* Apple-like color palette */
-  --apple-bg: #ffffff;
-  --apple-text: #1d1d1f;
-  --apple-secondary-text: #6e6e73;
-  --apple-border: #d2d2d7;
   --apple-blue: #0071e3;
-  --apple-blue-hover: #333333;
-  --apple-error: #ff3b30;
-  --apple-success: #34c759;
+  --apple-blue-light: #0077ed;
+  --apple-text: #1d1d1f;
+  --apple-secondary-text: #86868b;
+  --apple-bg: #ffffff;
   --apple-bg-secondary: #f5f5f7;
-  --apple-light-gray: #fafafa;
-  --apple-gray: #f2f2f2;
-  --arabic-font: 'Noto Sans Arabic', 'Baloo Bhaijaan 2', sans-serif;
-  --english-font: 'Noto Sans', Arial, sans-serif;
+  --apple-light-gray: #f5f5f7;
+  --apple-gray: #e8e8ed;
+  --apple-border: #d2d2d7;
+  --apple-primary: #0071e3;
+  
+  /* Font families */
+  --arabic-font: 'Noto Naskh Arabic', 'IBM Plex Sans Arabic', 'Baloo Bhaijaan 2', sans-serif;
+  --english-font: 'IBM Plex Sans', 'Inter', 'Noto Sans', sans-serif;
+  --mixed-font: 'Noto Sans', 'Noto Sans Arabic', sans-serif;
 }
 
 /* Global font settings */
@@ -44,6 +41,7 @@ body {
   background-color: var(--apple-bg);
   direction: rtl;
   text-align: right;
+  font-family: var(--ui-font);
 }
 
 /* RTL settings */
@@ -73,7 +71,7 @@ input, textarea {
 
 /* Apple-style button */
 .btn-apple {
-  @apply bg-[var(--apple-blue)] text-white font-semibold px-4 py-2 rounded-lg transition-all duration-300 hover:bg-[var(--apple-blue-hover)];
+  @apply bg-[var(--apple-blue)] text-white font-semibold px-4 py-2 rounded-lg transition-all duration-300 hover:bg-[var(--apple-blue-light)];
   font-family: 'Baloo Bhaijaan 2', sans-serif !important;
 }
 
@@ -84,6 +82,12 @@ input, textarea {
 
 .btn-apple-light {
   @apply bg-white text-[var(--apple-text)] font-semibold px-4 py-2 rounded-lg border border-[var(--apple-border)] transition-all duration-300 hover:bg-gray-50;
+  font-family: 'Baloo Bhaijaan 2', sans-serif !important;
+}
+
+/* Primary button style */
+.btn-apple-primary {
+  @apply bg-[var(--apple-blue)] text-white font-semibold px-4 py-2 rounded-lg transition-all duration-300 hover:bg-[var(--apple-blue-light)];
   font-family: 'Baloo Bhaijaan 2', sans-serif !important;
 }
 
@@ -106,25 +110,53 @@ input, textarea {
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--apple-bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--apple-border);
+  background: #b6b6b6;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--apple-secondary-text);
+  background: #888;
 }
 
 /* Mixed language text styling */
 .mixed-text {
-  font-family: var(--arabic-font);
+  font-family: var(--mixed-font);
+  line-height: 1.8;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  transition: background-color 0.2s ease;
+}
+
+.mixed-text:hover {
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
 .mixed-text:lang(en) {
   font-family: var(--english-font);
+}
+
+.mixed-text:lang(ar) {
+  font-family: var(--arabic-font);
+}
+
+.mixed-text span {
+  display: inline-block;
+  padding: 0 0.1em;
+  border-radius: 0.2em;
+  transition: all 0.2s ease;
+}
+
+.mixed-text span:lang(en) {
+  font-family: var(--english-font);
+}
+
+.mixed-text span:lang(ar) {
+  font-family: var(--arabic-font);
 }
 
 /* RTL & LTR support */
@@ -146,4 +178,58 @@ input, textarea {
 /* Arabic characters within English text */
 [dir="ltr"] :lang(ar) {
   font-family: var(--arabic-font);
+}
+
+/* Upload area styles */
+.upload-area {
+  border: 2px dashed var(--apple-border);
+  border-radius: 0.75rem;
+  padding: 2.5rem;
+  transition: all 0.3s ease;
+  background-color: var(--apple-bg-secondary);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-area:hover {
+  border-color: var(--apple-blue);
+  background-color: rgba(0, 113, 227, 0.02);
+}
+
+.upload-area-active {
+  border-color: var(--apple-blue);
+  background-color: rgba(0, 113, 227, 0.05);
+  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+  animation: pulse 1.5s infinite;
+}
+
+.upload-area::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(0, 113, 227, 0.05) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.upload-area:hover::before,
+.upload-area-active::before {
+  opacity: 1;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 113, 227, 0.3);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(0, 113, 227, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 113, 227, 0);
+  }
 }

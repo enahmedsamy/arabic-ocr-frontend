@@ -37,9 +37,12 @@ const ProgressBar = ({ progress }: { progress: number }) => {
 
 // Icons
 const UploadIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-[var(--apple-blue)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-  </svg>
+  <div className="relative group">
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-[var(--apple-blue)] transition-transform duration-300 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+    </svg>
+    <div className="absolute inset-0 bg-[var(--apple-blue)] opacity-0 rounded-full blur-lg scale-0 transition-all duration-300 group-hover:opacity-10 group-hover:scale-125"></div>
+  </div>
 );
 
 const FeatureIcon = ({ children }: { children: React.ReactNode }) => (
@@ -124,13 +127,21 @@ export default function Home() {
       });
       document.body.appendChild(debugDiv);
       
+      // Check file size (50MB limit)
+      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
+      if (file.size > MAX_FILE_SIZE) {
+        setError('حجم الملف كبير جدًا. الحد الأقصى هو 50 ميجابايت');
+        setFileSelected(false);
+        return;
+      }
+      
       // Check if file is an image or PDF
       const imageTypes = ['jpg', 'jpeg', 'png', 'heif', 'heic', 'webp', 'bmp', 'gif', 'tiff', 'tif', 'raw', 'img', 'svg'];
       const isPDF = fileExt === 'pdf' || fileType === 'application/pdf';
       const isImage = imageTypes.includes(fileExt) || fileType.startsWith('image/');
       
       // iOS sometimes uses a generic content type, so we check if it looks like an image from size
-      const looksLikeImage = file.size > 0 && file.size < 20 * 1024 * 1024; // Less than 20MB is likely an image/pdf
+      const looksLikeImage = file.size > 0 && file.size < MAX_FILE_SIZE; // Less than 50MB is likely an image/pdf
       
       // Special case for blank file type on iOS
       const isIOSImage = /iPhone|iPad|iPod/i.test(navigator.userAgent) && 
@@ -416,26 +427,27 @@ export default function Home() {
               onDrop={handleDrop}
             >
               <div 
-                className={`border-2 border-dashed rounded-lg p-10 transition-colors ${
-                  dragActive ? "border-blue-500 bg-blue-50" : "border-[var(--apple-border)] bg-[var(--apple-bg-secondary)]"
+                className={`upload-area ${
+                  dragActive ? "upload-area-active" : ""
                 }`}
               >
                 <div className="flex flex-col items-center justify-center">
-                  <img src="/upload-icon.svg" alt="Upload" className="w-16 h-16 mb-4" />
+                  <UploadIcon />
                   <p className="text-lg text-[var(--apple-secondary-text)] mb-4 font-['Baloo_Bhaijaan_2']">
                     اسحب وأفلت الصورة هنا أو انقر للاختيار
                   </p>
                   <label className="btn-apple-primary cursor-pointer">
-                    اختيار صورة
+                    اختيار صورة أو PDF
                     <input
+                      id="file-upload"
                       type="file"
-                      accept="image/*"
+                      accept="image/*,.pdf,application/pdf"
                       className="hidden"
                       onChange={handleFileChange}
                     />
                   </label>
                   <p className="text-sm text-[var(--apple-secondary-text)] mt-4 font-['Baloo_Bhaijaan_2']">
-                    الصيغ المدعومة: PNG، JPEG، GIF
+                    الصيغ المدعومة: PNG، JPEG، PDF (حتى 50 ميجابايت)
                   </p>
                 </div>
               </div>
