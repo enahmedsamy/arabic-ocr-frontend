@@ -23,6 +23,7 @@ export default function Home() {
   const [result, setResult] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState<boolean>(false);
+  const [fileSelected, setFileSelected] = useState<boolean>(false);
 
   const handleFileDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -35,22 +36,37 @@ export default function Home() {
   }, []);
 
   const handleFile = (file: File) => {
-    // Get file extension
+    // Get file extension and mime type
     const fileName = file.name.toLowerCase();
     const fileExt = fileName.split('.').pop() || '';
+    const fileType = file.type.toLowerCase();
+    
+    console.log("File selected:", { name: fileName, type: fileType, size: file.size });
     
     // Check if file is an image or PDF
     const imageTypes = ['jpg', 'jpeg', 'png', 'heif', 'heic', 'webp', 'bmp', 'gif', 'tiff', 'tif', 'raw', 'img', 'svg'];
-    const isPDF = fileExt === 'pdf';
-    const isImage = imageTypes.includes(fileExt) || file.type.startsWith('image/');
+    const isPDF = fileExt === 'pdf' || fileType === 'application/pdf';
+    const isImage = imageTypes.includes(fileExt) || fileType.startsWith('image/');
     
-    if (!isImage && !isPDF) {
+    // iOS sometimes uses a generic content type, so we check if it looks like an image from size
+    const looksLikeImage = file.size > 0 && file.size < 20 * 1024 * 1024; // Less than 20MB is likely an image/pdf
+    
+    if (!isImage && !isPDF && !looksLikeImage) {
       setError('يرجى تحميل ملف صورة (JPG, PNG, HEIC, الخ) أو PDF');
+      setFileSelected(false);
       return;
     }
     
     setFile(file);
     setError(null);
+    setFileSelected(true);
+
+    // Auto-scroll to the process button on mobile devices
+    if (window.innerWidth < 768) {
+      setTimeout(() => {
+        document.getElementById('process-button')?.scrollIntoView({ behavior: 'smooth' });
+      }, 500);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,8 +84,20 @@ export default function Home() {
     setLoading(true);
     setError(null);
     
+    // Check if this might be a HEIC file from iOS that wasn't properly detected
+    let fileToSend = file;
+    const fileName = file.name.toLowerCase();
+    
+    // If filename doesn't have an extension but comes from iOS, add .heic extension to help the backend
+    if (!fileName.includes('.') && /iphone|ipad|ipod/i.test(navigator.userAgent)) {
+      // Create a new file object with .heic extension
+      const newFileName = `${fileName}.heic`;
+      fileToSend = new File([file], newFileName, { type: file.type || 'image/heic' });
+      console.log("Renamed file for iOS compatibility:", newFileName);
+    }
+    
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", fileToSend);
 
     // Use the appropriate backend URL based on environment
     const apiUrl = process.env.NODE_ENV === 'development' 
@@ -173,13 +201,14 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4 text-[var(--apple-text)] font-['Baloo_Bhaijaan_2']">قم بتحميل صورة للبدء</h2>
-            <p className="text-[var(--apple-secondary-text)] font-['Baloo_Bhaijaan_2']">يمكنك تحميل ملفات بصيغة JPG, PNG أو PDF</p>
+            <p className="text-[var(--apple-secondary-text)] font-['Baloo_Bhaijaan_2']">يمكنك تحميل ملفات بصيغة JPG, PNG, HEIC, PDF وأي صيغة صور أخرى</p>
           </div>
           
           <div className="max-w-2xl mx-auto">
             <div 
               className={`file-upload-area border-2 border-dashed rounded-xl p-8 text-center cursor-pointer ${
-                dragActive ? 'border-[var(--apple-blue)] bg-[rgba(0,113,227,0.05)]' : 'border-[var(--apple-border)]'
+                dragActive ? 'border-[var(--apple-blue)] bg-[rgba(0,113,227,0.05)]' : 
+                fileSelected ? 'border-green-500 bg-[rgba(0,200,0,0.05)]' : 'border-[var(--apple-border)]'
               }`}
               onDragOver={(e) => { 
                 e.preventDefault(); 
@@ -193,7 +222,15 @@ export default function Home() {
               style={{cursor: 'pointer'}}
             >
               <div className="flex flex-col items-center justify-center gap-4">
-                <UploadIcon />
+                {fileSelected ? (
+                  <div className="text-green-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                ) : (
+                  <UploadIcon />
+                )}
                 <p className="text-lg text-[var(--apple-text)] font-['Baloo_Bhaijaan_2']">
                   {file 
                     ? `تم اختيار: ${file.name}` 
@@ -203,17 +240,27 @@ export default function Home() {
                   type="file"
                   id="file-upload"
                   className="hidden"
-                  accept=".jpg,.jpeg,.png,.pdf,.heif,.heic,.webp,.bmp,.gif,.tiff,.tif,.raw,.img,.svg"
+                  accept="image/*,.pdf,.heif,.heic"
+                  capture="environment"
                   onChange={handleFileChange}
                 />
                 <label
                   htmlFor="file-upload"
-                  className="btn-apple-secondary inline-block"
+                  className="btn-apple-secondary inline-block w-full md:w-auto px-6 py-3"
                 >
                   اختر ملفاً
                 </label>
               </div>
             </div>
+            
+            {fileSelected && (
+              <div className="mt-4 p-3 bg-green-50 text-green-700 rounded-lg flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>تم اختيار الملف بنجاح: {file?.name}</span>
+              </div>
+            )}
             
             {error && (
               <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg">
@@ -223,6 +270,7 @@ export default function Home() {
             
             <div className="mt-6 text-center">
               <button
+                id="process-button"
                 onClick={processImage}
                 disabled={loading || !file}
                 className={`btn-apple ${
