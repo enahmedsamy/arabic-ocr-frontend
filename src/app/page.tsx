@@ -241,7 +241,6 @@ export default function Home() {
                   id="file-upload"
                   className="hidden"
                   accept="image/*,.pdf,.heif,.heic"
-                  capture="environment"
                   onChange={handleFileChange}
                 />
                 <label
