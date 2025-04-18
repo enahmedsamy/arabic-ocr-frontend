@@ -284,9 +284,11 @@ export default function Home() {
       const data = await response.json();
       
       // Check if we have results
-      if (data.text) {
+      if (data.pages && data.pages.length > 0 && data.pages[0].text) {
         // Set extracted text, properly handling mixed language content
-        setExtractedText(data.text);
+        setExtractedText(data.pages[0].text);
+        setResult(data.pages[0].text);
+        setDominantLanguage(data.dominant_language || "arabic");
         
         // If an image was processed, display it
         if (data.image_url) {
@@ -294,6 +296,18 @@ export default function Home() {
         } else {
           // For files like PDFs where we don't get an image back
           // Create a temporary URL for the uploaded file to display
+          const objectUrl = URL.createObjectURL(file);
+          setImageURL(objectUrl);
+        }
+      } else if (data.text) {
+        // Handle legacy response format
+        setExtractedText(data.text);
+        setResult(data.text);
+        setDominantLanguage(data.dominant_language || "arabic");
+        
+        if (data.image_url) {
+          setImageURL(data.image_url);
+        } else {
           const objectUrl = URL.createObjectURL(file);
           setImageURL(objectUrl);
         }
