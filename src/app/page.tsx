@@ -61,18 +61,34 @@ export default function Home() {
     setError(null);
     setFileSelected(true);
 
-    // Auto-scroll to the process button on mobile devices
-    if (window.innerWidth < 768) {
-      setTimeout(() => {
-        document.getElementById('process-button')?.scrollIntoView({ behavior: 'smooth' });
-      }, 500);
-    }
+    // Focus on the process button after a short delay to ensure the DOM has updated
+    setTimeout(() => {
+      const processButton = document.getElementById('process-button');
+      if (processButton) {
+        processButton.focus();
+        // Also scroll to it on mobile
+        if (window.innerWidth < 768) {
+          processButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }, 300);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
+      // Clear the file input value so the same file can be selected again
+      e.target.value = '';
       handleFile(e.target.files[0]);
     }
+  };
+
+  const resetFile = () => {
+    setFile(null);
+    setFileSelected(false);
+    setError(null);
+    // Clear the file input value
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
   };
 
   const processImage = async () => {
@@ -243,12 +259,26 @@ export default function Home() {
                   accept="image/*,.pdf,.heif,.heic"
                   onChange={handleFileChange}
                 />
-                <label
-                  htmlFor="file-upload"
-                  className="btn-apple-secondary inline-block w-full md:w-auto px-6 py-3"
-                >
-                  اختر ملفاً
-                </label>
+                <div className="flex gap-3">
+                  <label
+                    htmlFor="file-upload"
+                    className="btn-apple-secondary inline-block w-full md:w-auto px-6 py-3"
+                  >
+                    {file ? 'تغيير الملف' : 'اختر ملفاً'}
+                  </label>
+                  {file && (
+                    <button
+                      onClick={resetFile}
+                      className="btn-apple-secondary bg-red-50 text-red-600 border-red-200 hover:bg-red-100 inline-block w-full md:w-auto px-6 py-3 flex items-center justify-center gap-2"
+                      aria-label="إزالة الملف المحدد"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      إزالة
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -274,7 +304,7 @@ export default function Home() {
                 disabled={loading || !file}
                 className={`btn-apple ${
                   loading || !file ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+                } focus:ring-4 focus:ring-[var(--apple-blue)]/30 transition-all`}
               >
                 {loading ? 'جارِ المعالجة...' : 'استخراج النص'}
               </button>
