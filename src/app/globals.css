@@ -14,8 +14,8 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
-  --apple-blue: #0071e3;
-  --apple-blue-light: #0077ed;
+  --apple-blue: #000000;
+  --apple-blue-light: #333333;
   --apple-text: #1d1d1f;
   --apple-secondary-text: #86868b;
   --apple-bg: #ffffff;
@@ -23,7 +23,7 @@
   --apple-light-gray: #f5f5f7;
   --apple-gray: #e8e8ed;
   --apple-border: #d2d2d7;
-  --apple-primary: #0071e3;
+  --apple-primary: #000000;
   
   /* Font families */
   --arabic-font: 'Noto Naskh Arabic', 'IBM Plex Sans Arabic', 'Baloo Bhaijaan 2', sans-serif;
@@ -76,7 +76,7 @@ input, textarea {
 }
 
 .btn-apple-secondary {
-  @apply bg-transparent text-[var(--apple-blue)] font-semibold px-4 py-2 rounded-lg border border-[var(--apple-blue)] transition-all duration-300 hover:bg-[rgba(0,113,227,0.05)];
+  @apply bg-transparent text-[var(--apple-blue)] font-semibold px-4 py-2 rounded-lg border border-[var(--apple-blue)] transition-all duration-300 hover:bg-[rgba(0,0,0,0.05)];
   font-family: 'Baloo Bhaijaan 2', sans-serif !important;
 }
 
@@ -100,7 +100,7 @@ input, textarea {
 .file-upload-area:hover {
   cursor: pointer !important;
   border-color: var(--apple-blue);
-  background-color: rgba(0, 113, 227, 0.02);
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
 /* Scrollbar styling */
@@ -194,13 +194,13 @@ input, textarea {
 
 .upload-area:hover {
   border-color: var(--apple-blue);
-  background-color: rgba(0, 113, 227, 0.02);
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
 .upload-area-active {
   border-color: var(--apple-blue);
-  background-color: rgba(0, 113, 227, 0.05);
-  box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+  background-color: rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
   animation: pulse 1.5s infinite;
 }
 
@@ -211,7 +211,7 @@ input, textarea {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at center, rgba(0, 113, 227, 0.05) 0%, transparent 70%);
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.05) 0%, transparent 70%);
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
@@ -224,12 +224,12 @@ input, textarea {
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(0, 113, 227, 0.3);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.3);
   }
   70% {
-    box-shadow: 0 0 0 8px rgba(0, 113, 227, 0);
+    box-shadow: 0 0 0 8px rgba(0, 0, 0, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(0, 113, 227, 0);
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
   }
 }
