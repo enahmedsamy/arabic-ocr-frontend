@@ -73,11 +73,13 @@ export default function Home() {
       const response = await fetch(apiUrl, {
         method: "POST",
         body: formData,
-        // Add proper headers and CORS settings
+        // CORS settings
         mode: 'cors',
         headers: {
           'Accept': 'application/json',
         },
+        // Explicitly don't send credentials for wildcard CORS to work
+        credentials: 'omit'
       });
       
       if (!response.ok) {
