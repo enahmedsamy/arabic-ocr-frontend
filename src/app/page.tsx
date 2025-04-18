@@ -52,21 +52,26 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
-  const [dominantLanguage, setDominantLanguage] = useState<string>("unknown");
+  const [dominantLanguage, setDominantLanguage] = useState<"arabic" | "english" | "mixed">("arabic");
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState<boolean>(false);
   const [fileSelected, setFileSelected] = useState<boolean>(false);
   const [showIOSButtons, setShowIOSButtons] = useState<boolean>(false);
   const [showToast, setShowToast] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>('');
-  const [progress, setProgress] = useState<number>(0);
   const progressIntervalRef = useRef<number | null>(null);
+  const [progress, setProgress] = useState<number>(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [imageURL, setImageURL] = useState<string | null>(null);
+  const [extractedText, setExtractedText] = useState<string>('');
+  const [showProgress, setShowProgress] = useState<boolean>(false);
   
   // Clear progress interval when component unmounts
   useEffect(() => {
     return () => {
-      if (progressIntervalRef.current) {
-        window.clearInterval(progressIntervalRef.current);
+      if (progressIntervalRef.current !== null) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
       }
     };
   }, []);
@@ -198,17 +203,9 @@ export default function Home() {
     if (fileInput) fileInput.value = '';
   };
 
-  const processImage = async () => {
-    if (!file) {
-      setError('يرجى تحميل ملف أولاً');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setProgress(0);
-    
-    // Start a progress simulation
+  // Function to simulate progress for better UX
+  const simulateProgress = () => {
+    // Clear any existing interval
     if (progressIntervalRef.current) {
       window.clearInterval(progressIntervalRef.current);
     }
@@ -222,113 +219,120 @@ export default function Home() {
       });
     }, 500);
     
+    return progressIntervalRef.current;
+  };
+
+  const processImage = async () => {
     try {
-      // Check if this might be a HEIC file from iOS that wasn't properly detected
-      let fileToSend = file;
-      const fileName = file.name.toLowerCase();
+      // Reset states
+      setImageURL(null);
+      setExtractedText('');
+      setLoading(true);
+      setError('');
+      setShowProgress(true);
+      setProgress(0);
       
-      // If filename doesn't have an extension but comes from iOS, add .heic extension to help the backend
-      if ((!fileName.includes('.') || file.type === '') && /iphone|ipad|ipod/i.test(navigator.userAgent)) {
-        // Create a new file object with .heic extension
-        const newFileName = `${fileName}.heic`;
-        fileToSend = new File([file], newFileName, { type: file.type || 'image/heic' });
-        console.log("Renamed file for iOS compatibility:", newFileName);
+      // Validate file
+      if (!file) {
+        setError('Please select an image file');
+        setLoading(false);
+        setShowProgress(false);
+        return;
       }
       
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/heic', 'image/heif', 'application/pdf'];
+      if (!validTypes.includes(file.type)) {
+        setError('Please upload a valid image file (JPEG, PNG, HEIC, HEIF) or PDF');
+        setLoading(false);
+        setShowProgress(false);
+        return;
+      }
+      
+      // Create FormData
       const formData = new FormData();
-      formData.append("file", fileToSend);
-
-      // Get API URL based on environment
-      let apiUrl = "";
-      if (process.env.NODE_ENV === 'development') {
-        // Try different local ports (8000, 8001, 8002, etc) as the backend might be running on a different port
-        const ports = [8000, 8001, 8002, 8003, 8004];
-        let responseReceived = false;
-        
-        for (const port of ports) {
-          if (responseReceived) break;
-          
-          try {
-            // Test if the backend is available on this port
-            const testUrl = `http://localhost:${port}/api/health`;
-            const response = await fetch(testUrl, { 
-              method: 'GET',
-              mode: 'cors',
-              headers: { 'Accept': 'application/json' },
-              credentials: 'omit',
-              // Short timeout to quickly move to next port if this one doesn't respond
-              signal: AbortSignal.timeout(1000)
-            });
-            
-            if (response.ok) {
-              apiUrl = `http://localhost:${port}/api/ocr`;
-              responseReceived = true;
-              console.log(`Backend available on port ${port}`);
-            }
-          } catch (e) {
-            console.log(`Backend not available on port ${port}`);
-          }
-        }
-        
-        // If no port responded, default to 8000
-        if (!responseReceived) {
-          apiUrl = "http://localhost:8000/api/ocr";
-          console.log("No backend port responded, defaulting to 8000");
-        }
-      } else {
-        // Production URL
-        apiUrl = "https://arabic-ocr-backend-staging-09589497d137.herokuapp.com/api/ocr";
-      }
-
-      console.log("Sending request to:", apiUrl);
+      formData.append('file', file);
       
-      const response = await fetch(apiUrl, {
-        method: "POST",
+      // Detect if we're in development or production
+      const backendUrl = process.env.NODE_ENV === 'development' 
+        ? 'http://localhost:8000'
+        : 'https://arabic-ocr-backend-d09ef2a2b9e9.herokuapp.com';
+      
+      // Add mixed language processing option to ensure both Arabic and English are properly handled
+      formData.append('mixed_language', 'true');
+      
+      // Add language hints to improve accuracy
+      formData.append('languages', 'ara+eng');
+      
+      // Start the progress simulation
+      const progressInterval = simulateProgress();
+      
+      // Send the file to the backend
+      const response = await fetch(`${backendUrl}/upload/`, {
+        method: 'POST',
         body: formData,
-        // CORS settings
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/json',
-        },
-        // Explicitly don't send credentials for wildcard CORS to work
-        credentials: 'omit'
       });
       
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => "Unknown error");
-        console.error("Server error:", response.status, errorText);
-        throw new Error(`OCR processing failed: ${response.status} ${errorText}`);
-      }
-      
-      const data = await response.json().catch(err => {
-        console.error("Failed to parse JSON response:", err);
-        throw new Error("Failed to parse server response");
-      });
-      
-      console.log("OCR response:", data);
-      
-      // Complete the progress
+      // Clear the progress simulation
+      clearInterval(progressInterval);
       setProgress(100);
       
-      // Check if there are pages in the response
-      if (data.pages && data.pages.length > 0) {
-        setResult(data.pages[0].text);
-        setDominantLanguage(data.dominant_language || "unknown");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Check if we have results
+      if (data.text) {
+        // Set extracted text, properly handling mixed language content
+        setExtractedText(data.text);
+        
+        // If an image was processed, display it
+        if (data.image_url) {
+          setImageURL(data.image_url);
+        } else {
+          // For files like PDFs where we don't get an image back
+          // Create a temporary URL for the uploaded file to display
+          const objectUrl = URL.createObjectURL(file);
+          setImageURL(objectUrl);
+        }
       } else {
-        setError('لم يتم العثور على نص في الملف المُحمّل');
+        setError('No text could be extracted from this image');
       }
     } catch (err) {
-      console.error("Error processing image:", err);
-      setError(`حدث خطأ أثناء معالجة الملف: ${err instanceof Error ? err.message : 'خطأ غير معروف'}`);
+      console.error('Error processing image:', err);
+      setError('Failed to process the image. Please try again.');
     } finally {
       setLoading(false);
-      // Clear the progress interval
-      if (progressIntervalRef.current) {
-        window.clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
+      setTimeout(() => {
+        setShowProgress(false);
+      }, 500); // Keep progress bar visible briefly after completion
     }
   };
+
+  // Handle drag events
+  const handleDrag = useCallback((e: React.DragEvent<HTMLDivElement | HTMLFormElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  }, []);
+  
+  // Handle drop event
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement | HTMLFormElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  }, [handleFile]);
 
   return (
     <main className="min-h-screen font-arabic">
@@ -381,122 +385,47 @@ export default function Home() {
       </section>
 
       {/* Upload Section */}
-      <section id="upload" className="py-16 bg-white">
+      <section id="upload" className="py-16 bg-gradient-to-b from-[var(--apple-bg)] to-[var(--apple-gray)]">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4 text-[var(--apple-text)] font-['Baloo_Bhaijaan_2']">قم بتحميل صورة للبدء</h2>
-            <p className="text-[var(--apple-secondary-text)] font-['Baloo_Bhaijaan_2']">يمكنك تحميل ملفات بصيغة JPG, PNG, HEIC, PDF وأي صيغة صور أخرى</p>
-          </div>
-          
-          <div className="max-w-2xl mx-auto">
-            <div 
-              className={`file-upload-area border-2 border-dashed rounded-xl p-8 text-center cursor-pointer ${
-                dragActive ? 'border-[var(--apple-blue)] bg-[rgba(0,113,227,0.05)]' : 
-                fileSelected ? 'border-green-500 bg-[rgba(0,200,0,0.05)]' : 'border-[var(--apple-border)]'
-              }`}
-              onDragOver={(e) => { 
-                e.preventDefault(); 
-                e.stopPropagation();
-                setDragActive(true); 
-              }}
-              onDragLeave={() => setDragActive(false)}
-              onDragEnd={() => setDragActive(false)}
-              onDrop={handleFileDrop}
-              onClick={() => document.getElementById('file-upload')?.click()}
-              style={{cursor: 'pointer'}}
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="mb-10">
+              <h1 className="text-4xl md:text-5xl font-bold text-[var(--apple-text)] mb-4 font-['Baloo_Bhaijaan_2']">تحويل الصور العربية إلى نص</h1>
+              <p className="text-xl text-[var(--apple-secondary-text)] font-['Baloo_Bhaijaan_2']">استخرج النص العربي من الصور بدقة عالية باستخدام تقنية OCR المتقدمة</p>
+            </div>
+            
+            <form 
+              className="mt-8" 
+              onSubmit={(e) => e.preventDefault()}
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
             >
-              <div className="flex flex-col items-center justify-center gap-4">
-                {fileSelected ? (
-                  <div className="text-green-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                ) : (
-                  <UploadIcon />
-                )}
-                <p className="text-lg text-[var(--apple-text)] font-['Baloo_Bhaijaan_2']">
-                  {file 
-                    ? `تم اختيار: ${file.name}` 
-                    : 'اسحب وأفلت الملف هنا أو انقر للتحميل'}
-                </p>
-                <input
-                  type="file"
-                  id="file-upload"
-                  className="hidden"
-                  accept="image/*,.pdf,.heif,.heic"
-                  onChange={handleFileChange}
-                  onClick={(e) => {
-                    // On iOS, clear the value when clicking to allow reselection
-                    const target = e.target as HTMLInputElement;
-                    target.value = '';
-                    console.log("File input clicked, value cleared");
-                  }}
-                />
-                
-                {/* Special inputs for iOS */}
-                {showIOSButtons && !fileSelected && (
-                  <div className="grid grid-cols-2 gap-3 w-full mb-2">
-                    <button
-                      onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.capture = 'environment';
-                        input.onchange = (e) => {
-                          const target = e.target as HTMLInputElement;
-                          if (target.files?.[0]) {
-                            handleFile(target.files[0]);
-                          }
-                        };
-                        input.click();
-                      }}
-                      className="btn-apple-secondary py-3 text-sm"
-                    >
-                      التقط صورة
-                    </button>
-                    <button
-                      onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.onchange = (e) => {
-                          const target = e.target as HTMLInputElement;
-                          if (target.files?.[0]) {
-                            handleFile(target.files[0]);
-                          }
-                        };
-                        input.click();
-                      }}
-                      className="btn-apple-secondary py-3 text-sm"
-                    >
-                      اختر من المعرض
-                    </button>
-                  </div>
-                )}
-                
-                <div className="flex gap-3">
-                  <label
-                    htmlFor="file-upload"
-                    className="btn-apple-secondary inline-block w-full md:w-auto px-6 py-3"
-                  >
-                    {file ? 'تغيير الملف' : 'اختر ملفاً'}
+              <div 
+                className={`border-2 border-dashed rounded-lg p-10 transition-colors ${
+                  dragActive ? "border-blue-500 bg-blue-50" : "border-[var(--apple-border)] bg-[var(--apple-bg-secondary)]"
+                }`}
+              >
+                <div className="flex flex-col items-center justify-center">
+                  <img src="/upload-icon.svg" alt="Upload" className="w-16 h-16 mb-4" />
+                  <p className="text-lg text-[var(--apple-secondary-text)] mb-4 font-['Baloo_Bhaijaan_2']">
+                    اسحب وأفلت الصورة هنا أو انقر للاختيار
+                  </p>
+                  <label className="btn-apple-primary cursor-pointer">
+                    اختيار صورة
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
                   </label>
-                  {file && (
-                    <button
-                      onClick={resetFile}
-                      className="btn-apple-secondary bg-red-50 text-red-600 border-red-200 hover:bg-red-100 inline-block w-full md:w-auto px-6 py-3 flex items-center justify-center gap-2"
-                      aria-label="إزالة الملف المحدد"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      إزالة
-                    </button>
-                  )}
+                  <p className="text-sm text-[var(--apple-secondary-text)] mt-4 font-['Baloo_Bhaijaan_2']">
+                    الصيغ المدعومة: PNG، JPEG، GIF
+                  </p>
                 </div>
               </div>
-            </div>
+            </form>
             
             {fileSelected && (
               <div className="mt-4 p-3 bg-green-50 text-green-700 rounded-lg flex items-center justify-center">
@@ -553,15 +482,51 @@ export default function Home() {
                     )}
                   </div>
                 </div>
-                <div 
-                  className="text-[var(--apple-text)] font-['Baloo_Bhaijaan_2'] whitespace-pre-wrap"
-                  dir={dominantLanguage === "arabic" ? "rtl" : dominantLanguage === "english" ? "ltr" : "auto"}
-                  style={{
-                    textAlign: dominantLanguage === "arabic" ? "right" : dominantLanguage === "english" ? "left" : "initial",
-                    lineHeight: "1.8"
-                  }}
-                >
-                  {result}
+                <div className="text-[var(--apple-text)] whitespace-pre-wrap" style={{ lineHeight: "1.8" }}>
+                  {result.split('\n').map((line, index) => {
+                    // Count Arabic and English characters in the line
+                    const arabicChars = (line.match(/[\u0600-\u06FF]/g) || []).length;
+                    const englishChars = (line.match(/[a-zA-Z]/g) || []).length;
+                    
+                    // Determine the dominant language for this line
+                    const lineDir = arabicChars > englishChars ? "rtl" : "ltr";
+                    const lineLang = arabicChars > englishChars ? "ar" : "en";
+                    
+                    return (
+                      <p 
+                        key={index} 
+                        dir={lineDir}
+                        lang={lineLang}
+                        className={`mixed-text mb-2 ${lineDir === "rtl" ? "text-right" : "text-left"}`}
+                        style={{
+                          fontFamily: lineDir === "rtl" ? "var(--arabic-font)" : "var(--english-font)"
+                        }}
+                      >
+                        {/* Split by words to apply proper font styling */}
+                        {line.split(' ').map((word, wordIndex) => {
+                          // Detect if word is primarily Arabic or English
+                          const isArabicWord = (word.match(/[\u0600-\u06FF]/g) || []).length > 
+                                             (word.match(/[a-zA-Z]/g) || []).length;
+                          
+                          return (
+                            <span 
+                              key={wordIndex}
+                              lang={isArabicWord ? "ar" : "en"}
+                              className="inline-block"
+                              style={{
+                                fontFamily: isArabicWord ? "var(--arabic-font)" : "var(--english-font)",
+                                direction: isArabicWord ? "rtl" : "ltr",
+                                marginLeft: "0.25em",
+                                marginRight: "0.25em"
+                              }}
+                            >
+                              {word}
+                            </span>
+                          );
+                        })}
+                      </p>
+                    );
+                  })}
                 </div>
               </div>
               <div className="mt-6 flex justify-center gap-4">
