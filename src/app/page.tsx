@@ -134,10 +134,10 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight text-[var(--apple-text)]">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight text-[var(--apple-text)] font-['Baloo_Bhaijaan_2']">
                 استخراج النصوص العربية بدقة عالية
               </h1>
-              <p className="text-[var(--apple-secondary-text)] mb-8 text-lg max-w-2xl mx-auto">
+              <p className="text-[var(--apple-secondary-text)] mb-8 text-lg max-w-2xl mx-auto font-['Baloo_Bhaijaan_2']">
                 حوّل الصور والمستندات الممسوحة ضوئياً إلى نصوص رقمية قابلة للتحرير والبحث بسهولة تامة
               </p>
               <a 
@@ -155,23 +155,29 @@ export default function Home() {
       <section id="upload" className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4 text-[var(--apple-text)]">قم بتحميل صورة للبدء</h2>
-            <p className="text-[var(--apple-secondary-text)]">يمكنك تحميل ملفات بصيغة JPG, PNG أو PDF</p>
+            <h2 className="text-3xl font-bold mb-4 text-[var(--apple-text)] font-['Baloo_Bhaijaan_2']">قم بتحميل صورة للبدء</h2>
+            <p className="text-[var(--apple-secondary-text)] font-['Baloo_Bhaijaan_2']">يمكنك تحميل ملفات بصيغة JPG, PNG أو PDF</p>
           </div>
           
           <div className="max-w-2xl mx-auto">
             <div 
-              className={`border-2 border-dashed rounded-xl p-8 text-center ${
+              className={`file-upload-area border-2 border-dashed rounded-xl p-8 text-center cursor-pointer ${
                 dragActive ? 'border-[var(--apple-blue)] bg-[rgba(0,113,227,0.05)]' : 'border-[var(--apple-border)]'
               }`}
-              onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+              onDragOver={(e) => { 
+                e.preventDefault(); 
+                e.stopPropagation();
+                setDragActive(true); 
+              }}
               onDragLeave={() => setDragActive(false)}
               onDragEnd={() => setDragActive(false)}
               onDrop={handleFileDrop}
+              onClick={() => document.getElementById('file-upload')?.click()}
+              style={{cursor: 'pointer'}}
             >
               <div className="flex flex-col items-center justify-center gap-4">
                 <UploadIcon />
-                <p className="text-lg text-[var(--apple-text)]">
+                <p className="text-lg text-[var(--apple-text)] font-['Baloo_Bhaijaan_2']">
                   {file 
                     ? `تم اختيار: ${file.name}` 
                     : 'اسحب وأفلت الملف هنا أو انقر للتحميل'}
@@ -218,9 +224,9 @@ export default function Home() {
         <section className="py-12 bg-[var(--apple-gray)]">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto">
-              <h3 className="text-2xl font-bold mb-6 text-[var(--apple-text)]">النص المستخرج:</h3>
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-[var(--apple-border)]">
-                <pre className="whitespace-pre-wrap text-right font-arabic">{result}</pre>
+              <div className="mt-8 border rounded-lg p-6 bg-[var(--apple-bg-secondary)]">
+                <h3 className="text-2xl font-bold mb-4 text-[var(--apple-text)] font-['Baloo_Bhaijaan_2']">النتيجة</h3>
+                <div className="text-[var(--apple-text)] font-['Baloo_Bhaijaan_2'] whitespace-pre-wrap">{result}</div>
               </div>
               <div className="mt-6 flex justify-center gap-4">
                 <button

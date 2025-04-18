@@ -8,7 +8,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        arabic: ['Noto Naskh Arabic', 'serif'],
+        arabic: ['Baloo Bhaijaan 2', 'sans-serif'],
+        sans: ['Baloo Bhaijaan 2', 'sans-serif'],
       },
       colors: {
         primary: {
@@ -27,6 +28,14 @@ module.exports = {
       borderRadius: {
         '2xl': '1rem',
         '3xl': '1.5rem',
+      },
+      cursor: {
+        pointer: 'pointer',
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-conic':
+          'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
       },
     },
   },
