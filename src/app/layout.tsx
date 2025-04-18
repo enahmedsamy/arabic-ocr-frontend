@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Arabic Books OCR",
   description: "Extract text from Arabic books and documents easily",
   icons: {
-    icon: "/favicon.ico",
+    icon: "https://res.cloudinary.com/dflkfh5eu/image/upload/v1744937747/sk1lwdly7vbxcxl34mhg.png",
   }
 };
 
@@ -22,7 +22,7 @@ export default function RootLayout({
           rel="stylesheet" 
           precedence="default"
         />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="https://res.cloudinary.com/dflkfh5eu/image/upload/v1744937747/sk1lwdly7vbxcxl34mhg.png" />
       </head>
       <body className="font-['Baloo_Bhaijaan_2']">{children}</body>
     </html>

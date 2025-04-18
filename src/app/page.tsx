@@ -35,8 +35,17 @@ export default function Home() {
   }, []);
 
   const handleFile = (file: File) => {
-    if (file.type !== 'image/jpeg' && file.type !== 'image/png' && file.type !== 'application/pdf') {
-      setError('يرجى تحميل ملف بصيغة JPG أو PNG أو PDF فقط');
+    // Get file extension
+    const fileName = file.name.toLowerCase();
+    const fileExt = fileName.split('.').pop() || '';
+    
+    // Check if file is an image or PDF
+    const imageTypes = ['jpg', 'jpeg', 'png', 'heif', 'heic', 'webp', 'bmp', 'gif', 'tiff', 'tif', 'raw', 'img', 'svg'];
+    const isPDF = fileExt === 'pdf';
+    const isImage = imageTypes.includes(fileExt) || file.type.startsWith('image/');
+    
+    if (!isImage && !isPDF) {
+      setError('يرجى تحميل ملف صورة (JPG, PNG, HEIC, الخ) أو PDF');
       return;
     }
     
@@ -116,7 +125,7 @@ export default function Home() {
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <img 
-              src="/ocr-arabic-logo.png" 
+              src="https://res.cloudinary.com/dflkfh5eu/image/upload/v1744937747/miojbqeic83x8zhtjytd.png" 
               alt="Arabic Books OCR" 
               className="h-10 w-auto"
             />
@@ -195,7 +204,7 @@ export default function Home() {
                   type="file"
                   id="file-upload"
                   className="hidden"
-                  accept=".jpg,.jpeg,.png,.pdf"
+                  accept=".jpg,.jpeg,.png,.pdf,.heif,.heic,.webp,.bmp,.gif,.tiff,.tif,.raw,.img,.svg"
                   onChange={handleFileChange}
                 />
                 <label
@@ -319,7 +328,7 @@ export default function Home() {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <img 
-                  src="/ocr-arabic-logo.png" 
+                  src="https://res.cloudinary.com/dflkfh5eu/image/upload/v1744937747/miojbqeic83x8zhtjytd.png" 
                   alt="Arabic Books OCR" 
                   className="h-10 w-auto invert" 
                 />
