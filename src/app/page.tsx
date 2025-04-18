@@ -1,8 +1,39 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+
+// Toast notification component
+const Toast = ({ message, onClose }: { message: string; onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      </svg>
+      {message}
+    </div>
+  );
+};
+
+// Progress bar component
+const ProgressBar = ({ progress }: { progress: number }) => {
+  return (
+    <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4 overflow-hidden">
+      <div 
+        className="bg-[var(--apple-blue)] h-2.5 rounded-full transition-all duration-500 ease-out"
+        style={{ width: `${progress}%` }}
+      ></div>
+    </div>
+  );
+};
 
 // Icons
 const UploadIcon = () => (
@@ -21,16 +52,35 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [dominantLanguage, setDominantLanguage] = useState<string>("unknown");
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState<boolean>(false);
   const [fileSelected, setFileSelected] = useState<boolean>(false);
   const [showIOSButtons, setShowIOSButtons] = useState<boolean>(false);
-
+  const [showToast, setShowToast] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string>('');
+  const [progress, setProgress] = useState<number>(0);
+  const progressIntervalRef = useRef<number | null>(null);
+  
+  // Clear progress interval when component unmounts
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        window.clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
+  
   // Check if we're on iOS
   useEffect(() => {
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     setShowIOSButtons(isIOS);
   }, []);
+
+  const showToastNotification = (message: string) => {
+    setToastMessage(message);
+    setShowToast(true);
+  };
 
   const handleFileDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -156,6 +206,21 @@ export default function Home() {
 
     setLoading(true);
     setError(null);
+    setProgress(0);
+    
+    // Start a progress simulation
+    if (progressIntervalRef.current) {
+      window.clearInterval(progressIntervalRef.current);
+    }
+    
+    // Simulate progress between 0-95% (final 5% when response received)
+    progressIntervalRef.current = window.setInterval(() => {
+      setProgress(prev => {
+        const increment = Math.random() * 5;
+        const newProgress = prev + increment;
+        return newProgress < 95 ? newProgress : 95;
+      });
+    }, 500);
     
     try {
       // Check if this might be a HEIC file from iOS that wasn't properly detected
@@ -173,10 +238,47 @@ export default function Home() {
       const formData = new FormData();
       formData.append("file", fileToSend);
 
-      // Use the appropriate backend URL based on environment
-      const apiUrl = process.env.NODE_ENV === 'development' 
-        ? "http://localhost:8000/api/ocr"
-        : "https://arabic-ocr-backend-staging-09589497d137.herokuapp.com/api/ocr";
+      // Get API URL based on environment
+      let apiUrl = "";
+      if (process.env.NODE_ENV === 'development') {
+        // Try different local ports (8000, 8001, 8002, etc) as the backend might be running on a different port
+        const ports = [8000, 8001, 8002, 8003, 8004];
+        let responseReceived = false;
+        
+        for (const port of ports) {
+          if (responseReceived) break;
+          
+          try {
+            // Test if the backend is available on this port
+            const testUrl = `http://localhost:${port}/api/health`;
+            const response = await fetch(testUrl, { 
+              method: 'GET',
+              mode: 'cors',
+              headers: { 'Accept': 'application/json' },
+              credentials: 'omit',
+              // Short timeout to quickly move to next port if this one doesn't respond
+              signal: AbortSignal.timeout(1000)
+            });
+            
+            if (response.ok) {
+              apiUrl = `http://localhost:${port}/api/ocr`;
+              responseReceived = true;
+              console.log(`Backend available on port ${port}`);
+            }
+          } catch (e) {
+            console.log(`Backend not available on port ${port}`);
+          }
+        }
+        
+        // If no port responded, default to 8000
+        if (!responseReceived) {
+          apiUrl = "http://localhost:8000/api/ocr";
+          console.log("No backend port responded, defaulting to 8000");
+        }
+      } else {
+        // Production URL
+        apiUrl = "https://arabic-ocr-backend-staging-09589497d137.herokuapp.com/api/ocr";
+      }
 
       console.log("Sending request to:", apiUrl);
       
@@ -205,9 +307,13 @@ export default function Home() {
       
       console.log("OCR response:", data);
       
+      // Complete the progress
+      setProgress(100);
+      
       // Check if there are pages in the response
       if (data.pages && data.pages.length > 0) {
         setResult(data.pages[0].text);
+        setDominantLanguage(data.dominant_language || "unknown");
       } else {
         setError('لم يتم العثور على نص في الملف المُحمّل');
       }
@@ -216,6 +322,11 @@ export default function Home() {
       setError(`حدث خطأ أثناء معالجة الملف: ${err instanceof Error ? err.message : 'خطأ غير معروف'}`);
     } finally {
       setLoading(false);
+      // Clear the progress interval
+      if (progressIntervalRef.current) {
+        window.clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
     }
   };
 
@@ -403,6 +514,12 @@ export default function Home() {
             )}
             
             <div className="mt-6 text-center">
+              {loading && (
+                <div className="mb-4">
+                  <p className="text-[var(--apple-secondary-text)] mb-2">جارِ المعالجة...</p>
+                  <ProgressBar progress={progress} />
+                </div>
+              )}
               <button
                 id="process-button"
                 onClick={processImage}
@@ -424,12 +541,35 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto">
               <div className="mt-8 border rounded-lg p-6 bg-[var(--apple-bg-secondary)]">
-                <h3 className="text-2xl font-bold mb-4 text-[var(--apple-text)] font-['Baloo_Bhaijaan_2']">النتيجة</h3>
-                <div className="text-[var(--apple-text)] font-['Baloo_Bhaijaan_2'] whitespace-pre-wrap">{result}</div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-2xl font-bold text-[var(--apple-text)] font-['Baloo_Bhaijaan_2']">النتيجة</h3>
+                  <div className="text-sm text-[var(--apple-secondary-text)]">
+                    {dominantLanguage === "arabic" ? (
+                      <span>تم اكتشاف: اللغة العربية</span>
+                    ) : dominantLanguage === "english" ? (
+                      <span>تم اكتشاف: اللغة الإنجليزية</span>
+                    ) : (
+                      <span>لغة مختلطة</span>
+                    )}
+                  </div>
+                </div>
+                <div 
+                  className="text-[var(--apple-text)] font-['Baloo_Bhaijaan_2'] whitespace-pre-wrap"
+                  dir={dominantLanguage === "arabic" ? "rtl" : dominantLanguage === "english" ? "ltr" : "auto"}
+                  style={{
+                    textAlign: dominantLanguage === "arabic" ? "right" : dominantLanguage === "english" ? "left" : "initial",
+                    lineHeight: "1.8"
+                  }}
+                >
+                  {result}
+                </div>
               </div>
               <div className="mt-6 flex justify-center gap-4">
                 <button
-                  onClick={() => navigator.clipboard.writeText(result)}
+                  onClick={() => {
+                    navigator.clipboard.writeText(result);
+                    showToastNotification('تم نسخ النص بنجاح');
+                  }}
                   className="btn-apple-secondary"
                 >
                   نسخ النص
@@ -549,6 +689,14 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Toast notification */}
+      {showToast && (
+        <Toast 
+          message={toastMessage} 
+          onClose={() => setShowToast(false)} 
+        />
+      )}
     </main>
   );
 }
