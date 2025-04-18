@@ -62,22 +62,36 @@ export default function Home() {
     const formData = new FormData();
     formData.append("file", file);
 
-    // Use the staging backend URL when in development
+    // Use the appropriate backend URL based on environment
     const apiUrl = process.env.NODE_ENV === 'development' 
       ? "http://localhost:8000/api/ocr"
       : "https://arabic-ocr-backend-staging-09589497d137.herokuapp.com/api/ocr";
 
     try {
+      console.log("Sending request to:", apiUrl);
+      
       const response = await fetch(apiUrl, {
         method: "POST",
         body: formData,
+        // Add proper headers and CORS settings
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json',
+        },
       });
       
       if (!response.ok) {
-        throw new Error("OCR processing failed");
+        const errorText = await response.text().catch(() => "Unknown error");
+        console.error("Server error:", response.status, errorText);
+        throw new Error(`OCR processing failed: ${response.status} ${errorText}`);
       }
       
-      const data = await response.json();
+      const data = await response.json().catch(err => {
+        console.error("Failed to parse JSON response:", err);
+        throw new Error("Failed to parse server response");
+      });
+      
+      console.log("OCR response:", data);
       
       // Check if there are pages in the response
       if (data.pages && data.pages.length > 0) {
@@ -86,8 +100,8 @@ export default function Home() {
         setError('لم يتم العثور على نص في الملف المُحمّل');
       }
     } catch (err) {
-      setError('حدث خطأ أثناء معالجة الملف. يرجى المحاولة مرة أخرى.');
-      console.error(err);
+      console.error("Error processing image:", err);
+      setError(`حدث خطأ أثناء معالجة الملف: ${err instanceof Error ? err.message : 'خطأ غير معروف'}`);
     } finally {
       setLoading(false);
     }
